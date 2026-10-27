@@ -1,0 +1,129 @@
+name: sommelier-virtual
+
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2025-latest
+    platform: linux/amd64
+    container_name: sommelier-sqlserver
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD}
+      MSSQL_PID: Developer
+    ports:
+      - "${MSSQL_PORT:-1433}:1433"
+    volumes:
+      - sqlserver-data:/var/opt/mssql
+      - ./certs/ca.crt:/var/opt/mssql/security/ca-certificates/sommelier-ca.crt:ro
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P \"$$MSSQL_SA_PASSWORD\" -Q \"SELECT 1\" || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+    restart: unless-stopped
+
+  db-init:
+    image: mcr.microsoft.com/mssql/server:2025-latest
+    platform: linux/amd64
+    container_name: sommelier-db-init
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+      ollama-tls:
+        condition: service_started
+      ollama-init:
+        condition: service_completed_successfully
+    environment:
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD}
+      API_DB_PASSWORD: ${API_DB_PASSWORD}
+    volumes:
+      - ./database:/scripts/database:ro
+      - ./ai:/scripts/ai:ro
+    entrypoint: ["/bin/bash", "-c"]
+    command:
+      - |
+        set -e
+        for f in /scripts/database/*.sql /scripts/ai/create_external_model.sql /scripts/ai/generate_embeddings.sql /scripts/ai/vector_search.sql /scripts/ai/rag.sql; do
+          echo "Ejecutando $$f"
+          /opt/mssql-tools18/bin/sqlcmd -C -b -S sqlserver -U sa -P "$$MSSQL_SA_PASSWORD" -v API_DB_PASSWORD="$$API_DB_PASSWORD" -i "$$f"
+        done
+    restart: "no"
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: sommelier-ollama
+    ports:
+      - "${OLLAMA_PORT:-11434}:11434"
+    volumes:
+      - ollama-models:/root/.ollama
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  ollama-tls:
+    image: caddy:2
+    container_name: sommelier-ollama-tls
+    depends_on:
+      - ollama
+    volumes:
+      - ./proxy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./certs:/certs:ro
+    restart: unless-stopped
+
+  ollama-init:
+    image: ollama/ollama:latest
+    container_name: sommelier-ollama-init
+    depends_on:
+      ollama:
+        condition: service_healthy
+    environment:
+      OLLAMA_HOST: http://ollama:11434
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        ollama pull ${OLLAMA_EMBEDDING_MODEL:-bge-m3}
+    restart: "no"
+
+  api:
+    build:
+      context: ./api
+    container_name: sommelier-api
+    profiles: ["app"]
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+      ollama:
+        condition: service_healthy
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      DB_HOST: sqlserver
+      DB_PORT: 1433
+      DB_NAME: SommelierVirtual
+      DB_USER: api_sommelier
+      DB_PASSWORD: ${API_DB_PASSWORD}
+      OLLAMA_URL: ${OLLAMA_CHAT_URL:-http://host.docker.internal:11434}
+      OLLAMA_CHAT_MODEL: ${OLLAMA_CHAT_MODEL:-gemma3:4b}
+    ports:
+      - "${API_PORT:-8000}:8000"
+    restart: unless-stopped
+
+  web:
+    build:
+      context: ./web
+    container_name: sommelier-web
+    profiles: ["app"]
+    depends_on:
+      - api
+    environment:
+      API_URL: http://api:8000
+    ports:
+      - "${WEB_PORT:-3000}:80"
+    restart: unless-stopped
+
+volumes:
+  sqlserver-data:
+  ollama-models:

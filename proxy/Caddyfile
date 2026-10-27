@@ -1,0 +1,8 @@
+{
+	auto_https off
+}
+
+https://ollama-tls:443 {
+	tls /certs/server.crt /certs/server.key
+	reverse_proxy ollama:11434
+}
