@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sommelier Virtual</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍷</text></svg>">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="cabecera">
+    <div class="marca">
+      <span class="marca-icono">🍷</span>
+      <div>
+        <h1>Sommelier Virtual</h1>
+        <p>Recomendaciones de vino a partir de tu bodega y de notas de cata reales</p>
+      </div>
+    </div>
+    <nav class="pestanas" role="tablist">
+      <button class="pestana activa" role="tab" data-vista="consulta" aria-selected="true">Preguntar</button>
+      <button class="pestana" role="tab" data-vista="catalogo" aria-selected="false">Catálogo</button>
+    </nav>
+  </header>
+
+  <main>
+    <section id="consulta" class="vista activa">
+      <form id="form-pregunta" class="caja-pregunta" autocomplete="off">
+        <label for="pregunta" class="sr-only">Tu pregunta</label>
+        <textarea id="pregunta" rows="2" maxlength="500" required minlength="3"
+          placeholder="¿Qué vino me recomiendas para una cena de marisco con presupuesto ajustado?"></textarea>
+        <div class="fila-opciones">
+          <label>Tipo
+            <select id="opcion-tipo">
+              <option value="">Cualquiera</option>
+              <option>Tinto</option><option>Blanco</option><option>Rosado</option>
+              <option>Espumoso</option><option>Dulce</option>
+            </select>
+          </label>
+          <label>País
+            <select id="opcion-pais">
+              <option value="">Cualquiera</option>
+            </select>
+          </label>
+          <label>Denominación
+            <select id="opcion-do">
+              <option value="">Cualquiera</option>
+            </select>
+          </label>
+          <label>Precio máx. (€)
+            <input type="number" id="opcion-precio" min="1" step="1" placeholder="Sin límite">
+          </label>
+          <label>Resultados
+            <select id="opcion-top">
+              <option>3</option><option selected>4</option><option>5</option><option>6</option>
+            </select>
+          </label>
+          <label class="interruptor" title="Un paso previo con el modelo interpreta tu petición y la convierte en filtros. Tarda unos segundos más.">
+            <input type="checkbox" id="opcion-analisis" checked>
+            <span class="pista"></span>
+            <span class="texto">Análisis profundo</span>
+          </label>
+          <button type="submit" id="boton-preguntar" class="boton-principal">Consultar al sommelier</button>
+        </div>
+      </form>
+
+      <div class="sugerencias" id="sugerencias">
+        <button type="button">Un tinto potente para carne de caza</button>
+        <button type="button">Algo dulce para acompañar un postre</button>
+        <button type="button">Espumoso para un aperitivo</button>
+        <button type="button">Blanco fresco para marisco</button>
+      </div>
+
+      <div id="resultado" aria-live="polite"></div>
+    </section>
+
+    <section id="catalogo" class="vista">
+      <div class="filtros">
+        <input type="search" id="filtro-texto" placeholder="Buscar por nombre, uva o bodega">
+        <select id="filtro-tipo" aria-label="Tipo">
+          <option value="">Todos los tipos</option>
+          <option>Tinto</option><option>Blanco</option><option>Rosado</option>
+          <option>Espumoso</option><option>Dulce</option>
+        </select>
+        <select id="filtro-pais" aria-label="País">
+          <option value="">Todos los países</option>
+        </select>
+        <select id="filtro-do" aria-label="Denominación de origen">
+          <option value="">Todas las denominaciones</option>
+        </select>
+        <label class="precio">Hasta <output id="valor-precio">500</output> €
+          <input type="range" id="filtro-precio" min="10" max="800" step="10" value="800">
+        </label>
+      </div>
+      <p id="contador" class="contador"></p>
+      <div id="rejilla" class="rejilla"></div>
+    </section>
+  </main>
+
+  <dialog id="ficha"></dialog>
+
+  <footer>SQL Server 2025 · bge-m3 · gemma3 · FastAPI + LangChain</footer>
+  <script src="app.js"></script>
+</body>
+</html>
