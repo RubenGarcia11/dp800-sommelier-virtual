@@ -1,0 +1,37 @@
+# Herramientas de asistencia / editores
+.claude/
+.claudecode/
+.cursor/
+.prompt
+*.prompt
+CLAUDE.md
+promptinicial.md
+*.log.md
+*_log.md
+*_notes.md
+.vscode/
+.idea/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+.env.*
+!.env.example
+.pytest_cache/
+*.egg-info/
+
+# SQL Server / datos locales
+*.bak
+*.mdf
+*.ldf
+*.ndf
+
+# Sistema
+.DS_Store
+Thumbs.db
+
+# Certificados locales
+certs/
