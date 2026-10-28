@@ -1,32 +1,66 @@
-# Sommelier Virtual
+<div align="center">
 
-Asistente de recomendación de vinos sobre SQL Server 2025. La base de datos almacena el catálogo, las notas de cata y el inventario, genera embeddings con un modelo local servido por Ollama y responde preguntas en lenguaje natural mediante un flujo RAG expuesto por una API en Python.
+# 🍷 Sommelier Virtual
 
-Proyecto del nivel 3 (avanzado) de DP-800.
+**Asistente de recomendación de vinos sobre SQL Server 2025 con búsqueda vectorial y RAG**
 
-## Arquitectura
+<p>
+  <img src="https://cdn.jsdelivr.net/gh/devicons/devicon@v2.16.0/icons/microsoftsqlserver/microsoftsqlserver-original.svg" alt="SQL Server" height="48">&nbsp;&nbsp;
+  <img src="https://cdn.simpleicons.org/ollama" alt="Ollama" height="48">&nbsp;&nbsp;
+  <img src="https://cdn.simpleicons.org/docker" alt="Docker" height="48">&nbsp;&nbsp;
+  <img src="https://cdn.simpleicons.org/fastapi" alt="FastAPI" height="48">&nbsp;&nbsp;
+  <img src="https://cdn.simpleicons.org/langchain" alt="LangChain" height="48">&nbsp;&nbsp;
+  <img src="https://cdn.simpleicons.org/python" alt="Python" height="48">&nbsp;&nbsp;
+  <img src="https://cdn.simpleicons.org/nginx" alt="nginx" height="48">&nbsp;&nbsp;
+  <img src="https://cdn.simpleicons.org/caddy" alt="Caddy" height="48">
+</p>
 
+![SQL Server 2025](https://img.shields.io/badge/SQL_Server-2025-CC2927)
+![Ollama](https://img.shields.io/badge/Ollama-local-000000?logo=ollama&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-API-009688?logo=fastapi&logoColor=white)
+![LangChain](https://img.shields.io/badge/LangChain-RAG-1C3C3C?logo=langchain&logoColor=white)
+![Python](https://img.shields.io/badge/Python-3.x-3776AB?logo=python&logoColor=white)
+![nginx](https://img.shields.io/badge/nginx-web-009639?logo=nginx&logoColor=white)
+![Caddy](https://img.shields.io/badge/Caddy-TLS-1F88C0?logo=caddy&logoColor=white)
+
+</div>
+
+---
+
+La base de datos almacena el catálogo, las notas de cata y el inventario, genera embeddings con un modelo local servido por Ollama y responde preguntas en lenguaje natural mediante un flujo RAG expuesto por una API en Python.
+
+> El proceso de construcción, con el uso de IA como asistente de desarrollo, está documentado en el [reporte de desarrollo](docs/reporte_desarrollo.md).
+
+## 📑 Contenido
+
+[Arquitectura](#-arquitectura) · [Estructura](#-estructura) · [Puesta en marcha](#-puesta-en-marcha) · [Base de datos](#-base-de-datos) · [IA](#-ia) · [API](#-api) · [Reglas de interpretación](#-reglas-de-interpretación) · [Limitaciones](#-limitaciones-conocidas)
+
+## 🏗️ Arquitectura
+
+```mermaid
+flowchart LR
+    U([👤 Pregunta]) --> W[🌐 nginx<br/>frontal]
+    W --> A[⚡ FastAPI<br/>+ LangChain]
+    A -->|usp_ContextoRag| S[(🗄️ SQL Server 2025)]
+    S -->|AI_GENERATE_EMBEDDINGS<br/>HTTPS| C[🔒 Caddy TLS]
+    C --> O[🦙 Ollama<br/>bge-m3]
+    S -->|VECTOR_DISTANCE coseno<br/>vinos + notas JSON| A
+    A -->|contexto| G[🦙 Ollama nativo<br/>gemma3:4b]
+    G -->|respuesta| A
 ```
-Pregunta ─► FastAPI ─► usp_ContextoRag (SQL Server 2025)
-                          │  AI_GENERATE_EMBEDDINGS ─► Ollama (bge-m3) vía HTTPS
-                          │  VECTOR_DISTANCE (coseno)
-                          ▼
-                    vinos + notas de cata (JSON)
-                          │
-              LangChain ─► Ollama nativo (gemma3:4b) ─► respuesta
-```
 
-| Servicio | Función | Puerto |
-|---|---|---|
-| `sqlserver` | SQL Server 2025 | 1433 |
-| `ollama` | Embeddings (`bge-m3`) para SQL Server | 11435 |
-| `ollama-tls` | Proxy Caddy con TLS (`CREATE EXTERNAL MODEL` exige HTTPS) | interno |
-| `api` | FastAPI + LangChain | 8000 |
-| `web` | Frontal estático servido por nginx, con proxy `/api` hacia la API | 3000 |
+| | Servicio | Función | Puerto |
+|---|---|---|---|
+| <img src="https://cdn.jsdelivr.net/gh/devicons/devicon@v2.16.0/icons/microsoftsqlserver/microsoftsqlserver-original.svg" height="20"> | `sqlserver` | SQL Server 2025 | 1433 |
+| <img src="https://cdn.simpleicons.org/ollama" height="20"> | `ollama` | Embeddings (`bge-m3`) para SQL Server | 11435 |
+| <img src="https://cdn.simpleicons.org/caddy" height="20"> | `ollama-tls` | Proxy Caddy con TLS (`CREATE EXTERNAL MODEL` exige HTTPS) | interno |
+| <img src="https://cdn.simpleicons.org/fastapi" height="20"> | `api` | FastAPI + LangChain | 8000 |
+| <img src="https://cdn.simpleicons.org/nginx" height="20"> | `web` | Frontal estático servido por nginx, con proxy `/api` hacia la API | 3000 |
 
 El modelo de chat se ejecuta en el Ollama nativo del equipo para aprovechar la GPU; los contenedores lo alcanzan por `host.docker.internal:11434`.
 
-## Estructura
+## 📁 Estructura
 
 ```
 ├── database/   esquema, datos, vistas, procedimientos, seguridad y optimización
@@ -39,11 +73,11 @@ El modelo de chat se ejecuta en el Ollama nativo del equipo para aprovechar la G
 └── docker-compose.yml
 ```
 
-## Puesta en marcha
+## 🚀 Puesta en marcha
 
 Guía completa, con verificación y solución de problemas: [docs/guia_despliegue.md](docs/guia_despliegue.md).
 
-Requisitos: Docker, OpenSSL y [Ollama](https://ollama.com) instalado en el equipo.
+Requisitos: ![Docker](https://img.shields.io/badge/Docker-2496ED?logo=docker&logoColor=white) ![OpenSSL](https://img.shields.io/badge/OpenSSL-721412?logo=openssl&logoColor=white) y [![Ollama](https://img.shields.io/badge/Ollama-000000?logo=ollama&logoColor=white)](https://ollama.com) instalado en el equipo.
 
 ```bash
 cp .env.example .env                 # ajusta las contraseñas
@@ -66,21 +100,21 @@ curl -X POST localhost:8000/preguntar -H 'Content-Type: application/json' \
 
 Documentación interactiva en <http://localhost:8000/docs>.
 
-## Base de datos
+## 🗄️ Base de datos
 
 - **Esquema** (`02_create_tables.sql`): `Bodegas`, `Vinos`, `NotasCata` e `Inventario`, con claves primarias y foráneas, restricciones `CHECK` e índices.
 - **Datos** (`03_seed_data.sql` y `03b_seed_espana.sql`): 49 bodegas, 68 vinos de 24 denominaciones de origen, con notas de cata e inventario. Cada vino lleva su propia `Denominacion` (Rioja, Ribera del Duero, Rías Baixas, Rueda, Priorat, Toro, Bierzo, Cava, Jerez…), porque una bodega puede elaborar en varias DO.
 - **Vistas** (`04_views.sql`): catálogo, márgenes y ranking por tipo con CTE y funciones de ventana.
 - **Procedimientos** (`05_stored_procedures.sql`): búsqueda con filtros, alta de notas, ajuste de stock, ficha en JSON y mejor vino por bodega.
 
-### Seguridad (`06_security.sql`, `09_api_user.sql`)
+### 🔐 Seguridad (`06_security.sql`, `09_api_user.sql`)
 
 - Roles con permisos mínimos: `rol_consulta`, `rol_catador`, `rol_gestor` y `rol_api`.
 - Row-Level Security sobre `NotasCata`: cada catador solo ve y registra sus notas, identificado mediante `SESSION_CONTEXT('catador')`.
 - Enmascarado dinámico de `PrecioCompra`, visible solo con `UNMASK` para el gestor.
 - La API se conecta con un login propio (`api_sommelier`), no con `sa`.
 
-### Optimización (`07_optimization.sql`)
+### ⚡ Optimización (`07_optimization.sql`)
 
 `usp_GastoClientePorMes` consulta 200.000 pedidos de una tabla sin índice clustered. Con el índice `IX_Pedidos_Cliente_Fecha` (`demos/optimizacion_indice.sql`) el plan pasa de Table Scan a Index Seek:
 
@@ -89,14 +123,14 @@ Documentación interactiva en <http://localhost:8000/docs>.
 | Sin índice | Table Scan | 866 | 477 ms |
 | Con índice | Index Seek | 3 | 11 ms |
 
-## IA
+## 🧠 IA
 
 - `create_external_model.sql`: registra `ModeloEmbeddings` apuntando a Ollama a través del proxy TLS.
 - `generate_embeddings.sql`: añade la columna `Vinos.Embedding VECTOR(1024)` y la rellena con `AI_GENERATE_EMBEDDINGS` a partir de la ficha y las notas de cata.
 - `vector_search.sql`: `usp_BuscarVinosSemantico`, búsqueda por distancia coseno.
 - `rag.sql`: `usp_ContextoRag`, contexto en JSON para el LLM.
 
-## API
+## 🔌 API
 
 | Método | Ruta | Descripción |
 |---|---|---|
@@ -108,7 +142,7 @@ Documentación interactiva en <http://localhost:8000/docs>.
 | GET | `/buscar?q=` | Búsqueda semántica |
 | POST | `/preguntar` | Pregunta en lenguaje natural (RAG); filtra por la denominación indicada o detectada en el texto |
 
-## Reglas de interpretación
+## 🧭 Reglas de interpretación
 
 Antes de buscar, la API (`api/app/reglas.py`) extrae criterios de la pregunta y los aplica como filtros en SQL. La interfaz muestra los criterios aplicados.
 
@@ -122,7 +156,7 @@ Antes de buscar, la API (`api/app/reglas.py`) extrae criterios de la pregunta y 
 | Capricho | "premium", "lujo" | Precio mínimo de 50 € |
 | Comensales | "10 invitados" (4 o más) | Stock mínimo de una botella por cada dos personas |
 
-### Análisis profundo (opcional)
+### 🔍 Análisis profundo (opcional)
 
 Con el interruptor "Análisis profundo" activado (`analisis_profundo` en `/preguntar`), un paso previo del modelo interpreta la petición y devuelve los requisitos en JSON: tipos de vino, país, denominación, presupuesto, comensales y una descripción del vino ideal que se usa en la búsqueda semántica. Después se filtra en SQL con esos requisitos.
 
@@ -138,7 +172,7 @@ docker cp api/tests sommelier-api:/srv/tests
 docker exec sommelier-api sh -c "pip install -q pytest && python -m pytest -q tests"
 ```
 
-## Limitaciones conocidas
+## ⚠️ Limitaciones conocidas
 
 - El conjunto de datos es pequeño (68 vinos), así que la recuperación semántica a veces coloca un vino poco relevante entre los primeros resultados.
 - Las contraseñas de `.env.example` son solo para desarrollo.
